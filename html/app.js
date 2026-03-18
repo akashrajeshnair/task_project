@@ -1,4 +1,17 @@
-const API_BASE_URL = 'http://localhost:5000';
+// Use same-origin by default so the UI works when served from a remote host (e.g. Jenkins agent).
+// Optional override: add ?apiBaseUrl=http://<host>:5000 in the URL or set localStorage.apiBaseUrl.
+const API_BASE_URL = (() => {
+    try {
+        const qs = new URLSearchParams(window.location.search);
+        const fromQuery = qs.get('apiBaseUrl');
+        if (fromQuery) return fromQuery.replace(/\/$/, '');
+        const fromStorage = localStorage.getItem('apiBaseUrl');
+        if (fromStorage) return fromStorage.replace(/\/$/, '');
+    } catch (_) {
+        // ignore
+    }
+    return ''; // same-origin
+})();
 let authToken = localStorage.getItem('authToken') || '';
 
 // Utility: safe query helper
