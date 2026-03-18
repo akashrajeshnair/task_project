@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Projects</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .nav { margin: 20px 0; }
+        .nav a { margin-right: 12px; }
+    </style>
+</head>
+<body>
+    <h1>Projects</h1>
+    <p class="nav">
+        <a href="index.html">Home</a>
+        <a href="auth.html">Authentication</a>
+        <a href="tasks.html">Tasks</a>
+    </p>
+
+    <h2>Create Project</h2>
+    <form id="create-project-form">
+        <input type="text" id="project-name" placeholder="Project Name" required><br>
+        <textarea id="project-description" placeholder="Description" required></textarea><br>
+        <button type="submit">Create Project</button>
+    </form>
+
+    <h2>List Projects</h2>
+    <button id="list-projects-btn">Get Projects</button>
+    <div id="projects-list"></div>
+
+    <h2>Get Project Tasks</h2>
+    <input type="number" id="project-id-tasks" placeholder="Project ID"><br>
+    <button id="get-project-tasks-btn">Get Tasks</button>
+    <div id="project-tasks-list"></div>
+
+    <h2>Update Project</h2>
+    <form id="update-project-form">
+        <input type="number" id="update-project-id" placeholder="Project ID" required><br>
+        <input type="text" id="update-project-name" placeholder="New Name"><br>
+        <textarea id="update-project-description" placeholder="New Description"></textarea><br>
+        <button type="submit">Update Project</button>
+    </form>
+
+    <h2>Delete Project</h2>
+    <input type="number" id="delete-project-id" placeholder="Project ID"><br>
+    <button id="delete-project-btn">Delete Project</button>
+
+    <h3>Response</h3>
+    <pre id="response-output"></pre>
+
+    <script src="app.js"></script>
+</body>
+</html>

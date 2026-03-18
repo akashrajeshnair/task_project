@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authentication</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .nav { margin: 20px 0; }
+        .nav a { margin-right: 12px; }
+        #token-display { word-break: break-all; display: inline-block; max-width: 400px; }
+    </style>
+</head>
+<body>
+    <h1>Authentication</h1>
+    <p class="nav">
+        <a href="index.html">Home</a>
+        <a href="projects.html">Projects</a>
+        <a href="tasks.html">Tasks</a>
+    </p>
+
+    <h2>Register</h2>
+    <form id="register-form">
+        <input type="text" id="reg-username" placeholder="Username" required><br>
+        <input type="email" id="reg-email" placeholder="Email" required><br>
+        <input type="password" id="reg-password" placeholder="Password" required><br>
+        <select id="reg-role" required>
+            <option value="">Select Role</option>
+            <option value="employee">Employee</option>
+            <option value="manager">Manager</option>
+            <option value="admin">Admin</option>
+        </select><br>
+        <input type="text" id="reg-department" placeholder="Department" required><br>
+        <button type="submit">Register</button>
+    </form>
+
+    <h2>Login</h2>
+    <form id="login-form">
+        <input type="text" id="login-username" placeholder="Username" required><br>
+        <input type="password" id="login-password" placeholder="Password" required><br>
+        <button type="submit">Login</button>
+    </form>
+
+    <p>Token: <span id="token-display"></span></p>
+    <button id="logout-btn">Logout</button>
+
+    <h3>Response</h3>
+    <pre id="response-output"></pre>
+
+    <script src="app.js"></script>
+</body>
+</html>

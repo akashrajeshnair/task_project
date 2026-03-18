@@ -1,0 +1,11 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    environment:
+      # Flask's built-in server is used in app.py.
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped

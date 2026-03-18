@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tasks</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .nav { margin: 20px 0; }
+        .nav a { margin-right: 12px; }
+    </style>
+</head>
+<body>
+    <h1>Tasks</h1>
+    <p class="nav">
+        <a href="index.html">Home</a>
+        <a href="auth.html">Authentication</a>
+        <a href="projects.html">Projects</a>
+    </p>
+
+    <h2>Create Task</h2>
+    <form id="create-task-form">
+        <input type="text" id="task-title" placeholder="Title" required><br>
+        <textarea id="task-description" placeholder="Description" required></textarea><br>
+        <select id="task-priority" required>
+            <option value="">Select Priority</option>
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+            <option value="critical">Critical</option>
+        </select><br>
+        <input type="date" id="task-due-date" required><br>
+        <select id="task-status" required>
+            <option value="">Select Status</option>
+            <option value="pending">Pending</option>
+            <option value="in_progress">In Progress</option>
+            <option value="completed">Completed</option>
+            <option value="on_hold">On Hold</option>
+        </select><br>
+        <input type="text" id="task-assigned-employees" placeholder="Assigned Employee IDs (comma separated)"><br>
+        <input type="number" id="task-project-id" placeholder="Project ID"><br>
+        <textarea id="task-comments" placeholder="Comments"></textarea><br>
+        <button type="submit">Create Task</button>
+    </form>
+
+    <h2>My Tasks</h2>
+    <button id="list-tasks-btn">Get My Tasks</button>
+    <div id="tasks-list"></div>
+
+    <h2>View Task Details</h2>
+    <input type="number" id="view-task-id" placeholder="Task ID"><br>
+    <button id="view-task-btn">View Task</button>
+    <div id="task-details"></div>
+
+    <h2>Filter Tasks</h2>
+    <form id="filter-tasks-form">
+        <select id="filter-status">
+            <option value="">Any Status</option>
+            <option value="pending">Pending</option>
+            <option value="in_progress">In Progress</option>
+            <option value="completed">Completed</option>
+            <option value="on_hold">On Hold</option>
+        </select><br>
+        <select id="filter-priority">
+            <option value="">Any Priority</option>
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+            <option value="critical">Critical</option>
+        </select><br>
+        <input type="date" id="filter-due-date" placeholder="Due Date"><br>
+        <input type="number" id="filter-assigned-employee" placeholder="Assigned Employee ID"><br>
+        <button type="submit">Filter Tasks</button>
+    </form>
+    <div id="filtered-tasks-list"></div>
+
+    <h2>Update Task</h2>
+    <form id="update-task-form">
+        <input type="number" id="update-task-id" placeholder="Task ID" required><br>
+        <input type="text" id="update-task-title" placeholder="Title"><br>
+        <textarea id="update-task-description" placeholder="Description"></textarea><br>
+        <select id="update-task-priority">
+            <option value="">Select Priority</option>
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+            <option value="critical">Critical</option>
+        </select><br>
+        <input type="date" id="update-task-due-date"><br>
+        <select id="update-task-status">
+            <option value="">Select Status</option>
+            <option value="pending">Pending</option>
+            <option value="in_progress">In Progress</option>
+            <option value="completed">Completed</option>
+            <option value="on_hold">On Hold</option>
+        </select><br>
+        <input type="text" id="update-task-assigned-employees" placeholder="Assigned Employee IDs (comma separated)"><br>
+        <textarea id="update-task-comments" placeholder="Comments"></textarea><br>
+        <button type="submit">Update Task</button>
+    </form>
+
+    <h2>Delete Task</h2>
+    <input type="number" id="delete-task-id" placeholder="Task ID"><br>
+    <button id="delete-task-btn">Delete Task</button>
+
+    <h3>Response</h3>
+    <pre id="response-output"></pre>
+
+    <script src="app.js"></script>
+</body>
+</html>
