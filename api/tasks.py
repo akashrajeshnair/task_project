@@ -1,6 +1,8 @@
 from flask import Blueprint, request, jsonify
+from db.models import Task, task_assignments, User
+from db.db import session_local
 import jwt
-from store import store
+# from store import store  # In-memory mode (currently disabled)
 
 task_bp = Blueprint('task', __name__, url_prefix='/task')
 SECRET_KEY = 'hello'
@@ -32,25 +34,27 @@ def create_task():
     if role != 'employee' and role != 'manager' and role != 'admin':
         return jsonify({"error": "Access denied. Insufficient permissions"}), 403
 
-    new_task = store.create_task(
-        title=title,
-        description=description,
-        priority=priority,
-        due_date=due_date,
-        status=status,
-        project_id=project_id,
-        comments=comments,
-    )
+    with session_local() as session:
+        new_task = Task(
+            title=title,
+            description=description,
+            priority=priority,
+            due_date=due_date,
+            status=status,
+            project_id=project_id,
+            comments=comments
+        )
+        session.add(new_task)
+        session.commit()
 
-    if assigned_employees:
-        # only assign existing users
-        valid_ids = []
-        for emp_id in assigned_employees:
-            if store.get_user(int(emp_id)):
-                valid_ids.append(int(emp_id))
-        store.set_task_assignees(int(new_task["id"]), valid_ids)
+        if assigned_employees:
+            for emp_id in assigned_employees:
+                employee = session.query(User).filter_by(id=emp_id).first()
+                if employee:
+                    new_task.assigned_employees.append(employee)
+            session.commit()
 
-    return jsonify({"message": "Task created successfully", "task_id": new_task["id"]}), 201
+        return jsonify({"message": "Task created successfully", "task_id": new_task.id}), 201
 
 
 @task_bp.route('/view-task/<int:id>', methods=['GET'])
@@ -71,26 +75,23 @@ def get_task_details(id):
     if role != 'employee' and role != 'manager' and role != 'admin':
         return jsonify({"error": "Access denied. Insufficient permissions"}), 403
 
-    task = store.get_task(int(id))
-    if not task:
-        return jsonify({"error": "Task not found"}), 404
-
-    assignees = store.get_task_assignees(int(id))
-    if int(user_id) not in assignees:
-        return jsonify({"error": "Task not found"}), 404
-
-    return jsonify({
-        "id": task["id"],
-        "title": task.get("title"),
-        "description": task.get("description"),
-        "priority": task.get("priority"),
-        "due_date": task.get("due_date"),
-        "status": task.get("status"),
-        "assigned_employees": assignees,
-        "project_id": task.get("project_id"),
-        "comments": task.get("comments"),
-        "timestamp": task.get("timestamp"),
-    })
+    with session_local() as session:
+        task = session.query(Task).join(task_assignments).filter(Task.id == id, task_assignments.c.user_id == user_id).first()
+        if task:
+            return jsonify({
+                "id": task.id,
+                "title": task.title,
+                "description": task.description,
+                "priority": task.priority,
+                "due_date": task.due_date,
+                "status": task.status,
+                "assigned_employees": [emp.id for emp in task.assigned_employees],
+                "project_id": task.project_id,
+                "comments": task.comments,
+                "timestamp": task.timestamp
+            })
+        else:
+            return jsonify({"error": "Task not found"}), 404
         
 @task_bp.route('/list-tasks', methods=['GET'])
 def get_my_tasklist():
@@ -110,23 +111,23 @@ def get_my_tasklist():
     if role != 'employee' and role != 'manager' and role != 'admin':
         return jsonify({"error": "Access denied. Insufficient permissions"}), 403
 
-    tasks = store.tasks_for_user(int(user_id))
-    task_list = []
-    for task in tasks:
-        tid = int(task["id"])
-        task_list.append({
-            "id": tid,
-            "title": task.get("title"),
-            "description": task.get("description"),
-            "priority": task.get("priority"),
-            "due_date": task.get("due_date"),
-            "status": task.get("status"),
-            "assigned_employees": store.get_task_assignees(tid),
-            "project_id": task.get("project_id"),
-            "comments": task.get("comments"),
-            "timestamp": task.get("timestamp"),
-        })
-    return jsonify(task_list)
+    with session_local() as session:
+        tasks = session.query(Task).join(task_assignments).filter(task_assignments.c.user_id == user_id).all()
+        task_list = []
+        for task in tasks:
+            task_list.append({
+                "id": task.id,
+                "title": task.title,
+                "description": task.description,
+                "priority": task.priority,
+                "due_date": task.due_date,
+                "status": task.status,
+                "assigned_employees": [emp.id for emp in task.assigned_employees],
+                "project_id": task.project_id,
+                "comments": task.comments,
+                "timestamp": task.timestamp
+            })
+        return jsonify(task_list)
 
 
 
@@ -155,32 +156,44 @@ def filter_tasks():
     due_date = data.get('due_date')
     assigned_employee = data.get('assigned_employee')
 
-    tasks = store.filter_tasks(
-        role=role,
-        requester_user_id=int(user_id),
-        requester_department=department,
-        status=status,
-        priority=priority,
-        due_date=due_date,
-        assigned_employee=int(assigned_employee) if assigned_employee is not None else None,
-    )
+    with session_local() as session:
+        query = session.query(Task)
 
-    task_list = []
-    for task in tasks:
-        tid = int(task["id"])
-        task_list.append({
-            "id": tid,
-            "title": task.get("title"),
-            "description": task.get("description"),
-            "priority": task.get("priority"),
-            "due_date": task.get("due_date"),
-            "status": task.get("status"),
-            "assigned_employees": store.get_task_assignees(tid),
-            "project_id": task.get("project_id"),
-            "comments": task.get("comments"),
-            "timestamp": task.get("timestamp"),
-        })
-    return jsonify(task_list)
+        if role == 'employee':
+            query = query.join(task_assignments).filter(task_assignments.c.user_id == user_id)
+        elif role == 'manager':
+            query = query.join(task_assignments).join(User).filter(User.department == department)
+        else:
+            if assigned_employee:
+                query = query.join(task_assignments)
+
+        if status:
+            query = query.filter(Task.status == status)
+        if priority:
+            query = query.filter(Task.priority == priority)
+        if due_date:
+            query = query.filter(Task.due_date == due_date)
+        if assigned_employee:
+            if role != 'employee' or assigned_employee != user_id:
+                query = query.filter(task_assignments.c.user_id == assigned_employee)
+
+        tasks = query.all()
+
+        task_list = []
+        for task in tasks:
+            task_list.append({
+                "id": task.id,
+                "title": task.title,
+                "description": task.description,
+                "priority": task.priority,
+                "due_date": task.due_date,
+                "status": task.status,
+                "assigned_employees": [emp.id for emp in task.assigned_employees],
+                "project_id": task.project_id,
+                "comments": task.comments,
+                "timestamp": task.timestamp
+            })
+        return jsonify(task_list)
     
 @task_bp.route('/update-task/<int:id>', methods=['PUT'])
 def update_task(id):
@@ -194,7 +207,7 @@ def update_task(id):
         payload = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
     except:
         return jsonify({"error": "invalid token"}), 401
-    user_id = payload.get('user_id')
+    payload.get('user_id')
     role = payload.get('role')
 
     if role != 'employee' and role != 'manager' and role != 'admin':
@@ -210,28 +223,35 @@ def update_task(id):
     project_id = data.get('project_id')
     comments = data.get('comments')
 
-    task = store.get_task(int(id))
-    if not task:
-        return jsonify({"error": "Task not found"}), 404
+    with session_local() as session:
+        task = session.query(Task).filter_by(id=id).first()
+        if not task:
+            return jsonify({"error": "Task not found"}), 404
 
-    store.update_task(int(id), {
-        "title": title,
-        "description": description,
-        "priority": priority,
-        "due_date": due_date,
-        "status": status,
-        "project_id": project_id,
-        "comments": comments,
-    })
+        if title:
+            task.title = title
+        if description:
+            task.description = description
+        if priority:
+            task.priority = priority
+        if due_date:
+            task.due_date = due_date
+        if status:
+            task.status = status
+        if project_id:
+            task.project_id = project_id
+        if comments:
+            task.comments = comments
 
-    if assigned_employees is not None:
-        valid_ids = []
-        for emp_id in assigned_employees:
-            if store.get_user(int(emp_id)):
-                valid_ids.append(int(emp_id))
-        store.set_task_assignees(int(id), valid_ids)
+        if assigned_employees is not None:
+            task.assigned_employees.clear()
+            for emp_id in assigned_employees:
+                employee = session.query(User).filter_by(id=emp_id).first()
+                if employee:
+                    task.assigned_employees.append(employee)
 
-    return jsonify({"message": "Task updated successfully"})
+        session.commit()
+        return jsonify({"message": "Task updated successfully"})
     
 @task_bp.route('/delete-task/<int:id>', methods=['DELETE'])
 def delete_task(id):
@@ -252,21 +272,20 @@ def delete_task(id):
     if role != 'employee' and role != 'manager' and role != 'admin':
         return jsonify({"error": "Access denied. Insufficient permissions"}), 403
 
-    task = store.get_task(int(id))
-    if not task:
-        return jsonify({"error": "Task not found"}), 404
-
-    assignees = store.get_task_assignees(int(id))
-    if role == 'employee':
-        if int(user_id) not in assignees:
-            return jsonify({"error": "Task not found or access denied"}), 404
-    elif role == 'manager':
-        # managers can delete tasks assigned to employees of their department
-        dept_user_ids = {
-            u["id"] for u in (store.get_user(uid) for uid in assignees) if u and u.get("department") == department
-        }
-        if not dept_user_ids:
+    with session_local() as session:
+        if role == 'employee':
+            task = session.query(Task).join(task_assignments).filter(Task.id == id, task_assignments.c.user_id == user_id).first()
+            if not task:
+                return jsonify({"error": "Task not found or access denied"}), 404
+        elif role == 'manager':
+            task = session.query(Task).join(task_assignments).join(User).filter(Task.id == id, User.department == department).first()
+            if not task:
+                return jsonify({"error": "Task not found"}), 404
+        else:
+            task = session.query(Task).filter_by(id=id).first()
+        if not task:
             return jsonify({"error": "Task not found"}), 404
 
-    store.delete_task(int(id))
-    return jsonify({"message": "Task deleted successfully"})
+        session.delete(task)
+        session.commit()
+        return jsonify({"message": "Task deleted successfully"})

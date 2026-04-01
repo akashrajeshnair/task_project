@@ -1,6 +1,10 @@
 flask
 flask-cors
 flask-smorest
+flask-sqlalchemy
+sqlalchemy
+flask-migrate
 pyjwt
 bcrypt
+pymysql
 cryptography
